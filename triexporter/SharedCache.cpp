@@ -22,7 +22,7 @@ bool SharedCache::LoadDir(string eveDir)
 
 	if (loadedDir)
 	{
-		ifstream in(eveDir + "\\resfileindex.txt");
+		ifstream in(cacheDir + "\\tq\\resfileindex.txt");
 		if (in.good())
 		{
 			string line;

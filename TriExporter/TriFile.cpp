@@ -877,7 +877,7 @@ void TriFile::ExportFBX(float size, string file, string dir)
 	if(lExporter->Initialize(pFilename, pFileFormat, pManager->GetIOSettings()) == false)
 	{
 		FBXSDK_printf("Call to FbxExporter::Initialize() failed.\n");
-		FBXSDK_printf("Error returned: %s\n\n", lExporter->GetLastErrorString());
+		FBXSDK_printf("Error returned: %s\n\n", lExporter->GetStatus());
 		return;
 	}
 
