@@ -1,22 +1,15 @@
-// Windows Template Library - WTL version 8.1
-// Copyright (C) Microsoft Corporation. All rights reserved.
+// Windows Template Library - WTL version 9.10
+// Copyright (C) Microsoft Corporation, WTL Team. All rights reserved.
 //
 // This file is a part of the Windows Template Library.
 // The use and distribution terms for this software are covered by the
-// Common Public License 1.0 (http://opensource.org/licenses/cpl1.0.php)
-// which can be found in the file CPL.TXT at the root of this distribution.
-// By using this software in any fashion, you are agreeing to be bound by
-// the terms of this license. You must not remove this notice, or
-// any other, from this software.
+// Microsoft Public License (http://opensource.org/licenses/MS-PL)
+// which can be found in the file MS-PL.txt at the root folder.
 
 #ifndef __ATLWINCE_H__
 #define __ATLWINCE_H__
 
 #pragma once
-
-#ifndef __cplusplus
-	#error ATL requires C++ compilation (use a .cpp suffix)
-#endif
 
 #ifndef __ATLAPP_H__
 	#error atlwince.h requires atlapp.h to be included first
@@ -28,7 +21,9 @@
 
 #ifndef _WIN32_WCE
 	#error atlwince.h compiles under Windows CE only
-#elif (_WIN32_WCE < 300)
+#endif
+
+#if (_WIN32_WCE < 300)
 	#error atlwince.h requires Windows CE 3.0 or higher.
 #endif
 
@@ -280,7 +275,7 @@ public:
 	{
 		T* pT = static_cast<T*>(this);
 		ATLASSERT(pT->IsWindow());
-		TCHAR sTitle[48];
+		TCHAR sTitle[48] = { 0 };
 
 		// Preparation
 		CPaintDC dc(pT->m_hWnd);
@@ -517,12 +512,10 @@ public:
 	
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 	{
-#ifdef _DEBUG
 		T* pT = static_cast<T*>(this);
 		ATLASSERT(t_bModal == pT->m_bModal);
-#endif
-		StdPlatformInit();
-		StdShidInit();
+		pT->StdPlatformInit();
+		pT->StdShidInit();
 		return bHandled = FALSE;
 	}
 };
@@ -679,13 +672,11 @@ public:
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 	{
-#ifdef _DEBUG
 		T* pT = static_cast<T*>(this);
 		ATLASSERT(t_bModal == pT->m_bModal);
-#endif
-		StdPlatformInit();
-		DlgResize_Init(FALSE);
-		StdShidInit();
+		pT->StdPlatformInit();
+		pT->DlgResize_Init(FALSE);
+		pT->StdShidInit();
 		return bHandled = FALSE;
 	}
 };
@@ -743,9 +734,10 @@ public:
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 	{
-		StdPlatformInit();
-		DlgResize_Init(FALSE);
-		StdShidInit();
+		T* pT = static_cast<T*>(this);
+		pT->StdPlatformInit();
+		pT->DlgResize_Init(FALSE);
+		pT->StdShidInit();
 		return bHandled = FALSE;
 	}
 };
@@ -786,7 +778,7 @@ public:
 		ATLASSERT(pT->IsWindow());
 		if (wParam == SETTINGCHANGE_RESET)
 		{
-			SetOrientation(DRA::GetDisplayMode());
+			pT->SetOrientation(DRA::GetDisplayMode());
 			pT->StdPlatformInit();
 			pT->StdShidInit();
 		}
@@ -824,7 +816,7 @@ public:
 		ATLASSERT(t_bModal == pT->m_bModal);
 #endif
 		if (DRA::GetDisplayMode() == DRA::Landscape)
-			SetOrientation(DRA::Landscape);
+			pT->SetOrientation(DRA::Landscape);
 		pT->StdPlatformInit();
 		pT->StdShidInit();
 		return bHandled = FALSE;
@@ -896,7 +888,7 @@ public:
 class CAppInfoBase
 {
 public:
-	ATL::CRegKey m_Key;
+	CRegKeyEx m_Key;
 
 	CAppInfoBase(ATL::_U_STRINGorID sAppKey)
 	{
@@ -907,46 +899,30 @@ public:
 	template <class V>
 	LONG Save(V& val, ATL::_U_STRINGorID sName)
 	{
-		return ::RegSetValueEx(m_Key, sName.m_lpstr, 0, REG_BINARY, (LPBYTE)&val, sizeof(V));
+		return m_Key.SetBinaryValue(sName.m_lpstr, &val, sizeof(V));
 	}
 
 	template <class V>
 	LONG Save(int nb, V& val0, ATL::_U_STRINGorID sName)
 	{
-		return ::RegSetValueEx(m_Key, sName.m_lpstr, 0, REG_BINARY, (LPBYTE)&val0, nb * sizeof(V));
+		return m_Key.SetBinaryValue(sName.m_lpstr, &val0, nb * sizeof(V));
 	}
 
 	template <class V>
 	LONG Restore(V& val, ATL::_U_STRINGorID sName)
 	{
-		DWORD valtype;
-		DWORD bufSize = sizeof(V);
-		return ::RegQueryValueEx(m_Key, sName.m_lpstr, 0, &valtype, (LPBYTE)&val, &bufSize);
+		ULONG bufSize = sizeof(V);
+		return m_Key.QueryBinaryValue(sName.m_lpstr, &val, &bufSize);
 	}
 
 	template <class V>
 	LONG Restore(int nb, V& val0, ATL::_U_STRINGorID sName)
 	{
-		DWORD valtype;
-		DWORD bufSize = nb * sizeof(V);
-		return ::RegQueryValueEx(m_Key, sName.m_lpstr, 0, &valtype, (LPBYTE)&val0, &bufSize);
+		ULONG bufSize = nb * sizeof(V);
+		return m_Key.QueryBinaryValue(sName.m_lpstr, &val0, &bufSize);
 	}
 
 #if defined(_WTL_USE_CSTRING) || defined(__ATLSTR_H__)
-#if (_ATL_VER < 0x0800)
-	LONG Save(_CSTRING_NS::CString& sval, ATL::_U_STRINGorID sName)
-	{
-		return m_Key.SetValue(sval, sName.m_lpstr);
-	}
-
-	LONG Restore(_CSTRING_NS::CString& sval, ATL::_U_STRINGorID sName)
-	{
-		DWORD size = MAX_PATH;
-		LONG res = m_Key.QueryValue(sval.GetBuffer(size), sName.m_lpstr, &size);
-		sval.ReleaseBuffer();
-		return res;
-	}
-#else // !(_ATL_VER < 0x0800)
 	LONG Save(_CSTRING_NS::CString& sval, ATL::_U_STRINGorID sName)
 	{
 		return m_Key.SetStringValue(sName.m_lpstr, sval);
@@ -959,22 +935,10 @@ public:
 		sval.ReleaseBuffer();
 		return res;
 	}
-#endif // !(_ATL_VER < 0x0800)
 #else
   #pragma message("Warning: CAppInfoBase compiles without CString support. Do not use CString in Save or Restore.")
 #endif // defined(_WTL_USE_CSTRING) || defined(__ATLSTR_H__)
 	
-#if (_ATL_VER < 0x0800)
-	LONG Save(LPCTSTR sval, ATL::_U_STRINGorID sName)
-	{
-		return m_Key.SetValue(sval, sName.m_lpstr);
-	}
-
-	LONG Restore(LPTSTR sval, ATL::_U_STRINGorID sName, DWORD *plength)
-	{
-		return m_Key.QueryValue(sval, sName.m_lpstr, plength);
-	}
-#else // !(_ATL_VER < 0x0800)
 	LONG Save(LPCTSTR sval, ATL::_U_STRINGorID sName)
 	{
 		return m_Key.SetStringValue(sName.m_lpstr, sval);
@@ -984,7 +948,6 @@ public:
 	{
 		return m_Key.QueryStringValue(sName.m_lpstr, sval, plength);
 	}
-#endif // !(_ATL_VER < 0x0800)
 	
 	LONG Delete(ATL::_U_STRINGorID sName)
 	{
@@ -1815,7 +1778,7 @@ public:
 
 	void UpdateLayout()
 	{
-		RECT rect;
+		RECT rect = { 0 };
 		GetClientRect(&rect);
 
 		if(m_tab.IsWindow() && ((m_tab.GetStyle() & WS_VISIBLE) != 0))
@@ -2214,22 +2177,37 @@ public:
 		::SendMessage(m_hWnd, EM_UNDOEVENT, 0, 0L);
 	}
 
+	void Undo()
+	{
+		UndoEvent();
+	}
+
 // Standard EM_xxx messages
 	DWORD GetSel() const
 	{
 		ATLASSERT(::IsWindow(m_hWnd));
+		ATLASSERT(GetViewStyle() != VT_DRAWINGVIEW);
 		return (DWORD)::SendMessage(m_hWnd, EM_GETSEL, 0, 0L);
 	}
 
 	void GetSel(int& nStartChar, int& nEndChar) const
 	{
 		ATLASSERT(::IsWindow(m_hWnd));
+		ATLASSERT(GetViewStyle() != VT_DRAWINGVIEW);
 		::SendMessage(m_hWnd, EM_GETSEL, (WPARAM)&nStartChar, (LPARAM)&nEndChar);
+	}
+
+	void SetSel(int nStartChar, int nEndChar)
+	{
+		ATLASSERT(::IsWindow(m_hWnd));
+		ATLASSERT(GetViewStyle() != VT_DRAWINGVIEW);
+		::SendMessage(m_hWnd, EM_SETSEL, nStartChar, nEndChar);
 	}
 
 	void ReplaceSel(LPCTSTR lpszNewText, BOOL bCanUndo = FALSE)
 	{
 		ATLASSERT(::IsWindow(m_hWnd));
+		ATLASSERT(GetViewStyle() != VT_DRAWINGVIEW);
 		::SendMessage(m_hWnd, EM_REPLACESEL, (WPARAM)bCanUndo, (LPARAM)lpszNewText);
 	}
 
@@ -2495,7 +2473,7 @@ public:
 		::ZeroMemory(&m_dlc, sizeof(DOCLISTCREATE));
 		::ZeroMemory(m_szPath, sizeof(m_szPath));
 		if(pszFolder != NULL)
-			::lstrcpyn(m_szPath, pszFolder, MAX_PATH - 1);
+			SecureHelper::strncpy_x(m_szPath, MAX_PATH, pszFolder, MAX_PATH - 1);
 		m_dlc.dwStructSize = sizeof(DOCLISTCREATE);
 		m_dlc.hwndParent = hWndParent;
 		m_dlc.pszFolder = m_szPath;
@@ -2651,7 +2629,7 @@ public:
 	BOOL SetItemState(int iIndex, UINT uState, UINT uMask)
 	{
 		ATLASSERT(::IsWindow(m_hWnd));
-		LV_ITEM lvi = { 0 };
+		LVITEM lvi = { 0 };
 		lvi.stateMask = uMask;
 		lvi.state = uState;
 		return (BOOL)::SendMessage(m_hWnd, DLM_SETITEMSTATE, (WPARAM)iIndex, (LPARAM)&lvi);
@@ -2787,13 +2765,14 @@ public:
 	{
 		ATLASSERT(::IsWindow(m_hWnd));
 		ATLASSERT(pstrTipText);
-		ATLASSERT(lstrlen(pstrTipText)<= 253);
+		ATLASSERT(lstrlen(pstrTipText) <= 253);
 		CTempBuffer<TCHAR, _WTL_STACK_ALLOC_THRESHOLD> buff;
-		LPTSTR pstr = buff.Allocate(lstrlen(pstrTipText) + 3);
+		int cchLen = lstrlen(pstrTipText) + 3;
+		LPTSTR pstr = buff.Allocate(cchLen);
 		if(pstr == NULL)
 			return FALSE;
-		::lstrcpy(pstr, _T("~~"));
-		::lstrcat(pstr, pstrTipText);
+		SecureHelper::strcpy_x(pstr, cchLen, _T("~~"));
+		SecureHelper::strcat_x(pstr, cchLen, pstrTipText);
 		return SetWindowText(pstr);
 	}
 };
@@ -2838,13 +2817,14 @@ public:
 	{
 		ATLASSERT(::IsWindow(m_hWnd));
 		ATLASSERT(pstrTipText);
-		ATLASSERT(lstrlen(pstrTipText)<= 253);
+		ATLASSERT(lstrlen(pstrTipText) <= 253);
 		CTempBuffer<TCHAR, _WTL_STACK_ALLOC_THRESHOLD> buff;
-		LPTSTR pstr = buff.Allocate(lstrlen(pstrTipText) + 3);
+		int cchLen = lstrlen(pstrTipText) + 3;
+		LPTSTR pstr = buff.Allocate(cchLen);
 		if(pstr == NULL)
 			return FALSE;
-		::lstrcpy(pstr, _T("~~"));
-		::lstrcat(pstr, pstrTipText);
+		SecureHelper::strcpy_x(pstr, cchLen, _T("~~"));
+		SecureHelper::strcat_x(pstr, cchLen, pstrTipText);
 		return SetWindowText(pstr);
 	}
 };
@@ -2965,7 +2945,7 @@ public:
 		{
 			m_SpinCtrl.Attach(hSpin);
 #ifdef DEBUG
-			TCHAR sClassName[16];
+			TCHAR sClassName[16] = { 0 };
 			::GetClassName(hSpin, sClassName, 16);
 			ATLASSERT(!_tcscmp(sClassName, UPDOWN_CLASS));
 			ATLASSERT(m_SpinCtrl.GetBuddy().m_hWnd == pT->m_hWnd);
