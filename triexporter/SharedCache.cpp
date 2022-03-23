@@ -36,7 +36,7 @@ bool SharedCache::LoadDir(string eveDir)
 				
 				file = CacheEntry();
 				file.filename = filename;
-				file.cachename = cacheDir + "ResFiles\\" + cachename;
+				file.cachename = cacheDir + "\\ResFiles\\" + cachename; // 03-22-2022 - Fix path typo
 				file.fileSize = filesize;
 				index.push_back(file);
 				line.clear();
