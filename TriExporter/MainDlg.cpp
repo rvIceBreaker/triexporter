@@ -63,9 +63,9 @@ void CMainDlg::Load(string &out)
 	m_p3d.Open(*file);
 	textures.clear();
 	texdata.clear();
-	textures.resize(file->header.numSurfaces);
-	texdata.resize(file->header.numSurfaces);
-	for(dword i = 0; i < file->header.numSurfaces; i++)
+	textures.resize(MAX_TEXTURES); // 03-22-2022 - Remove texture limitation
+	texdata.resize(MAX_TEXTURES);
+	for(dword i = 0; i < MAX_TEXTURES; i++)
 		texdata[i] = -1;
 	CString VSize;
 	CString TriVersion;
@@ -107,9 +107,9 @@ void CMainDlg::Load(int out)
 	m_p3d.Open(*file);
 	textures.clear();
 	texdata.clear();
-	textures.resize(file->header.numSurfaces);
-	texdata.resize(file->header.numSurfaces);
-	for(dword i = 0; i < file->header.numSurfaces; i++)
+	textures.resize(MAX_TEXTURES); // 03-22-2022 - Remove texture limitation
+	texdata.resize(MAX_TEXTURES);
+	for(dword i = 0; i < MAX_TEXTURES; i++)
 		texdata[i] = -1;
 	CString VSize;
 	CString TriVersion;
@@ -320,16 +320,18 @@ void CMainDlg::ExportTextures(const CString &path)
 void CMainDlg::Add(const CString &texture,int data)
 {
 	dword tc = (dword)m_Textures.GetCount();
-	if(tc < file->header.numSurfaces)
-	{
+
+	// 03-22-2022 - This limitation doesn't make sense, textures are not per-surface; surfaces are effectively different material IDs or UVs
+	/*if(tc < file->header.numSurfaces)
+	{*/
 		textures[tc] = (LPCSTR)texture;
 		texdata[tc] = data;
 		FillTextures();
-	}
+	/*}
 	else
 	{
 		MessageBox("You have to remove one of textures to add another", "Error", MB_ICONERROR | MB_OK);
-	}
+	}*/
 }
 
 void CMainDlg::FillTextures()
